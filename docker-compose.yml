@@ -1,0 +1,66 @@
+services:
+  # 1. Mensageria (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cineflow_rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5673:5672"   # CORREÇÃO: Porta AMQP do Host alterada para 5673.
+      - "15673:15672" # CORREÇÃO: Porta Management do Host alterada para 15673.
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      start_period: 30s 
+      # CORREÇÃO FINAL: Usar rabbitmqctl status para uma checagem de saúde mais robusta
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s 
+      timeout: 3s
+      retries: 5
+
+  # 2. MICROSSERVIÇO USER (Porta 8001) - Consumidor RabbitMQ
+  cineflow-user:
+    build:
+      context: ./cineflow-user
+    container_name: cineflow_user
+    ports:
+      - "8001:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy # Agora espera o RabbitMQ estar de fato pronto
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+
+  # 3. MICROSSERVIÇO CATALOG (Porta 8002) - API Externa (IMDB)
+  cineflow-catalog:
+    build:
+      context: ./cineflow-catalog
+    container_name: cineflow_catalog
+    ports:
+      - "8002:8000"
+    environment:
+      IMDB_API_KEY: ${IMDB_API_KEY}
+      RAPIDAPI_HOST: imdb236.p.rapidapi.com 
+      
+  # 4. MICROSSERVIÇO STREAMING (Porta 8003) - Orquestrador + Produtor RabbitMQ
+  cineflow-streaming:
+    build:
+      context: ./cineflow-streaming
+    container_name: cineflow_streaming
+    ports:
+      - "8003:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy # Espera o RabbitMQ
+      cineflow-user:
+        condition: service_started # Depende de User para chamada SÍNCRONA
+      cineflow-catalog:
+        condition: service_started # Depende de Catalog para chamada SÍNCRONA
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      USER_SERVICE_URL: http://cineflow-user:8000
+      CATALOG_SERVICE_URL: http://cineflow-catalog:8000

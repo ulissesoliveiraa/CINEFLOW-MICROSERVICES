@@ -1,0 +1,20 @@
+# Dependências
+node_modules
+dist
+build
+
+# Variáveis de ambiente (NUNCA subir)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# IDE / SO
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
