@@ -106,7 +106,7 @@ RAPIDAPI_HOST=imdb236.p.rapidapi.com
 1. Clone o repositório:
 
 ```bash
-git clone https://github.com/Raimundofiles/CineFlow-Microservices.git
+git clone https://github.com/ulissesoliveiraa/CINEFLOW-MICROSERVICES
 ```
 
 2. Acesse a pasta do projeto:
